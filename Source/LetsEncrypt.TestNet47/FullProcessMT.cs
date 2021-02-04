@@ -29,7 +29,7 @@ namespace LetsEncrypt.Test
 
             // Create DNS challenge (DNS is required for wildcard certificate)
             var challenges = await acmeClient.GetDnsChallenges(account, order);
-            
+
             try
             {
                 // Creation of all DNS entries
@@ -128,7 +128,7 @@ namespace LetsEncrypt.Test
             var match = Regex.Match(name, "(.*)\\.([a-z0-9\\-]+\\.[a-z]+)$");
             var domain = match.Groups[2].Value;
             var txtName = match.Groups[1].Value;
-         
+
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("Auth-API-Token", DnsApiKey);
@@ -136,18 +136,18 @@ namespace LetsEncrypt.Test
                 var zoneResponse = await client.GetAsync($"https://dns.hetzner.com/api/v1/zones?name={domain}");
                 var zone = JsonConvert.DeserializeObject<JObject>(await zoneResponse.Content.ReadAsStringAsync());
                 var zoneId = ((zone["zones"] as JArray)[0] as JObject)["id"].ToString();
-               
+
                 var data = new
                 {
                     name = txtName,
                     type = "TXT",
                     value = value,
                     zone_id = zoneId,
-                    ttl=0
+                    ttl = 0
                 };
                 var createResponse = await client.PostAsync($"https://dns.hetzner.com/api/v1/records", new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json"));
                 createResponse.EnsureSuccessStatusCode();
-               
+
             }
         }
     }
