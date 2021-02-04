@@ -6,11 +6,8 @@ using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Crypto.Operators;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.X509;
-using Org.BouncyCastle.Crypto.Tls;
 #endif
 namespace LetsEncrypt.Client.Cryptography
 {
@@ -22,31 +19,29 @@ namespace LetsEncrypt.Client.Cryptography
         {
 #if NETSTANDARD2_0
             var keyPair = DotNetUtilities.GetKeyPair(rsa);
-            Asn1SignatureFactory signatureFactory = new Asn1SignatureFactory
-                (PkcsObjectIdentifiers.Sha256WithRsaEncryption.Id, keyPair.Private);
+            var csrAttrs = new List<Asn1Encodable>();
 
-            var cGenerator = new X509V3CertificateGenerator();
-
-            cGenerator.SetSubjectDN(new X509Name("CN=" + cn));
-
-            cGenerator.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(true));
-            cGenerator.SetPublicKey(keyPair.Public);
-
-            
-            //cGenerator.AddExtension(X509Extensions.SubjectKeyIdentifier, true, new SubjectKeyIdentifier(keyPair.Public));
-            //req.CertificateExtensions.Add(
-            //    new X509SubjectKeyIdentifierExtension(req.PublicKey, false));
-
-            var sanb = new List<GeneralName>();
-            foreach (var subjectAlternativeName in subjectAlternativeNames)
-            {
-                sanb.Add(new GeneralName(GeneralName.DnsName, subjectAlternativeName));
-            }
            
-            cGenerator.AddExtension(X509Extensions.SubjectAlternativeName, false, new GeneralNames(sanb.ToArray()));
-            var cert = cGenerator.Generate(signatureFactory);
-            return cert.GetEncoded();
+            var gnames = new List<GeneralName>();
+            
+            foreach (var n in subjectAlternativeNames)
+                gnames.Add(new GeneralName(GeneralName.DnsName, n));
 
+            var altNames = new GeneralNames(gnames.ToArray());
+
+            var x509Ext = new X509Extensions(new Dictionary<DerObjectIdentifier, object>()
+            {
+                { X509Extensions.SubjectAlternativeName, new Org.BouncyCastle.Asn1.X509.X509Extension(false, new DerOctetString(altNames))}
+            });
+
+            csrAttrs.Add(new Org.BouncyCastle.Asn1.Cms.Attribute(
+                PkcsObjectIdentifiers.Pkcs9AtExtensionRequest,
+                new DerSet(x509Ext)));
+            
+            var csr = new Pkcs10CertificationRequest(PkcsObjectIdentifiers.Sha256WithRsaEncryption.Id,
+                new X509Name($"CN={cn}"), keyPair.Public, new DerSet(csrAttrs.ToArray()), keyPair.Private);
+
+            return csr.GetEncoded();
 #endif
 #if NETSTANDARD2_1
 
