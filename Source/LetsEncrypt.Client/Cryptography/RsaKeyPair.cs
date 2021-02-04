@@ -100,23 +100,41 @@ namespace LetsEncrypt.Client.Cryptography
 
         public RSA ToRSA()
         {
+
+#if NETSTANDARD2_0
+            var rsa = new RSACryptoServiceProvider(KEY_SIZE);
+            rsa.ImportParameters(Private);
+            return rsa;
+#endif
+#if NETSTANDARD2_1
             return RSA.Create(Private);
+#endif
         }
 
         public string ToPrivateKeyPem()
         {
+#if NETSTANDARD2_0
+            return this.ToRSA().ExportPrivateKey();
+#endif
+#if NETSTANDARD2_1
             return string.Format(
                 "-----BEGIN {1}-----\n{0}\n-----END {1}-----",
                 Convert.ToBase64String(this.ToRSA().ExportRSAPrivateKey()),
                 RSA_PEM_STRING_PRIVATE);
+#endif
         }
 
         public string ToPublicKeyPem()
         {
+#if NETSTANDARD2_0
+            return this.ToRSA().ExportPublicKey();
+#endif
+#if NETSTANDARD2_1
             return string.Format(
                 "-----BEGIN {1}-----\n{0}\n-----END {1}-----",
                 Convert.ToBase64String(this.ToRSA().ExportRSAPublicKey()),
                 RSA_PEM_STRING_PUBLIC);
+#endif
         }
 
         // Private Methods

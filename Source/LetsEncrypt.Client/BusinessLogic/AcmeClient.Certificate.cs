@@ -1,8 +1,12 @@
 ﻿using LetsEncrypt.Client.Entities;
 using LetsEncrypt.Client.Jws;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace LetsEncrypt.Client
 {
@@ -77,5 +81,6 @@ namespace LetsEncrypt.Client
             var signedData = account.Signer.Sign(null, account.Location, order.Certificate, nonce);
             return await PostAsync<CertificateChain>(order.Certificate, signedData);
         }
+
     }
 }
